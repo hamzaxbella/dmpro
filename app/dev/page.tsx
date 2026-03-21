@@ -17,6 +17,7 @@ interface Conversation {
 interface CheckResult {
   connected: boolean;
   token_preview?: string;
+  token_length?: number;
   error?: string;
   error_code?: number;
   account?: { id: string; name: string; username?: string };
