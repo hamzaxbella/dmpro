@@ -3,7 +3,9 @@
 CREATE TABLE IF NOT EXISTS leads (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   ig_username  TEXT    NOT NULL UNIQUE,
+  igsid        TEXT    UNIQUE,
   full_name    TEXT,
+  profile_pic  TEXT,
   status       TEXT    NOT NULL DEFAULT 'contacted'
                  CHECK(status IN ('contacted','replied','interested','closed','lost')),
   notes        TEXT,

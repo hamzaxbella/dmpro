@@ -9,21 +9,58 @@ interface Reminder {
   sent: number;
   created_at: string;
   ig_username?: string;
+  profile_pic?: string | null;
+}
+
+export interface StaleLead {
+  id: number;
+  ig_username: string;
+  full_name: string | null;
+  profile_pic: string | null;
+  status: string;
+  updated_at: string;
+  days_stale: number;
+}
+
+function getSettings() {
+  const rows = db
+    .prepare(`SELECT key, value FROM settings WHERE key IN ('contacted_days','replied_days','interested_days')`)
+    .all() as { key: string; value: string }[];
+  const map: Record<string, number> = { contacted_days: 3, replied_days: 5, interested_days: 7 };
+  for (const r of rows) map[r.key] = parseInt(r.value, 10);
+  return map;
 }
 
 /**
  * GET /api/reminders — Get reminders, optionally filtered
- * Query: ?filter=due (only unsent, due now) | upcoming (unsent, future) | all (default)
+ * Query: ?filter=due | upcoming | stale | all (default)
  */
 export async function GET(request: NextRequest) {
   const filter = request.nextUrl.searchParams.get('filter') ?? 'all';
+
+  if (filter === 'stale') {
+    const s = getSettings();
+    const stale = db.prepare(`
+      SELECT id, ig_username, full_name, profile_pic, status, updated_at,
+        CAST(julianday('now') - julianday(updated_at) AS INTEGER) AS days_stale
+      FROM leads
+      WHERE ignored = 0
+        AND (
+          (status = 'contacted'  AND julianday('now') - julianday(updated_at) >= ?)
+          OR (status = 'replied'    AND julianday('now') - julianday(updated_at) >= ?)
+          OR (status = 'interested' AND julianday('now') - julianday(updated_at) >= ?)
+        )
+      ORDER BY days_stale DESC
+    `).all(s.contacted_days, s.replied_days, s.interested_days) as StaleLead[];
+    return Response.json(stale);
+  }
 
   let reminders: Reminder[];
   switch (filter) {
     case 'due':
       reminders = db
         .prepare(
-          `SELECT r.*, l.ig_username FROM reminders r
+          `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
            JOIN leads l ON l.id = r.lead_id
            WHERE r.sent = 0 AND r.due_at <= datetime('now')
            ORDER BY r.due_at ASC`
@@ -33,7 +70,7 @@ export async function GET(request: NextRequest) {
     case 'upcoming':
       reminders = db
         .prepare(
-          `SELECT r.*, l.ig_username FROM reminders r
+          `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
            JOIN leads l ON l.id = r.lead_id
            WHERE r.sent = 0 AND r.due_at > datetime('now')
            ORDER BY r.due_at ASC`
@@ -43,7 +80,7 @@ export async function GET(request: NextRequest) {
     default:
       reminders = db
         .prepare(
-          `SELECT r.*, l.ig_username FROM reminders r
+          `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
            JOIN leads l ON l.id = r.lead_id
            ORDER BY r.due_at DESC`
         )

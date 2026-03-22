@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -17,8 +18,11 @@ interface LeadDetail {
   id: number;
   ig_username: string;
   full_name: string | null;
+  profile_pic: string | null;
+  igsid: string | null;
   status: string;
   notes: string | null;
+  ignored: number;
   created_at: string;
   updated_at: string;
   events: Event[];
@@ -29,6 +33,7 @@ interface Params {
 }
 
 export default function LeadDetailPage({ params }: { params: Promise<Params> }) {
+  const router = useRouter();
   const [lead, setLead] = useState<LeadDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -77,6 +82,13 @@ export default function LeadDetailPage({ params }: { params: Promise<Params> }) 
     fetchLead();
   };
 
+  const handleIgnore = async () => {
+    if (!resolvedId || !lead) return;
+    if (!confirm(`Ignore @${lead.ig_username}? They'll be removed from your inbox and pipeline.`)) return;
+    await fetch(`/api/leads/${resolvedId}/ignore`, { method: "POST" });
+    router.push("/board");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -117,19 +129,45 @@ export default function LeadDetailPage({ params }: { params: Promise<Params> }) 
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             {/* Avatar */}
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-semibold"
-              style={{
-                background: "var(--accent-light)",
-                color: "var(--accent)",
-              }}
+            <a
+              href={`https://instagram.com/${lead.ig_username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0"
+              title="Open on Instagram"
             >
-              {lead.ig_username.charAt(0).toUpperCase()}
-            </div>
+              {lead.profile_pic ? (
+                <img src={lead.profile_pic} alt={lead.ig_username} className="w-12 h-12 rounded-xl object-cover" />
+              ) : (
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-semibold"
+                  style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                >
+                  {lead.ig_username.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </a>
             <div>
-              <h1 className="text-xl font-bold tracking-[-0.01em]" style={{ color: "var(--foreground)" }}>
-                @{lead.ig_username}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-[-0.01em]" style={{ color: "var(--foreground)" }}>
+                  @{lead.ig_username}
+                </h1>
+                {!/^\d+$/.test(lead.ig_username) && (
+                  <a
+                    href={`https://instagram.com/${lead.ig_username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="opacity-40 hover:opacity-80 transition-opacity"
+                    title="Open on Instagram"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </a>
+                )}
+              </div>
               {!editing ? (
                 <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
                   {lead.full_name || "No name set"}
@@ -146,12 +184,25 @@ export default function LeadDetailPage({ params }: { params: Promise<Params> }) 
             </div>
           </div>
 
-          <button
-            onClick={() => (editing ? handleSave() : setEditing(true))}
-            className={editing ? "btn-primary" : "btn-ghost"}
-          >
-            {editing ? "Save" : "Edit"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => (editing ? handleSave() : setEditing(true))}
+              className={editing ? "btn-primary" : "btn-ghost"}
+            >
+              {editing ? "Save" : "Edit"}
+            </button>
+            <button
+              onClick={handleIgnore}
+              className="btn-ghost text-[0.8125rem]"
+              style={{ color: "var(--muted)" }}
+              title="Add to ignore list — removes from inbox and pipeline"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+              Ignore
+            </button>
+          </div>
         </div>
 
         {/* Status selector */}

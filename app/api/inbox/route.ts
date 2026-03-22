@@ -28,6 +28,7 @@ export async function GET() {
       (SELECT created_at FROM events WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1) AS last_event_at,
       (SELECT COUNT(*) FROM events WHERE lead_id = l.id) AS event_count
     FROM leads l
+    WHERE l.ignored = 0
     ORDER BY COALESCE(
       (SELECT created_at FROM events WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1),
       l.updated_at
