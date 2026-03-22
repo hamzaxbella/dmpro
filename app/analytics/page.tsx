@@ -10,7 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from "recharts";
+} from "recharts"; // reaching the skies
 import FunnelChart from "@/components/charts/FunnelChart";
 
 interface FunnelRow {
