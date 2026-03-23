@@ -22,10 +22,10 @@ export interface StaleLead {
   days_stale: number;
 }
 
-function getSettings() {
-  const rows = db
-    .prepare(`SELECT key, value FROM settings WHERE key IN ('contacted_days','replied_days','interested_days')`)
-    .all() as { key: string; value: string }[];
+async function getSettings() {
+  const rows = (await db
+      .prepare(`SELECT key, value FROM settings WHERE key IN ('contacted_days','replied_days','interested_days')`)
+      .all()) as { key: string; value: string }[];
   const map: Record<string, number> = { contacted_days: 3, replied_days: 5, interested_days: 7 };
   for (const r of rows) map[r.key] = parseInt(r.value, 10);
   return map;
@@ -36,11 +36,11 @@ function getSettings() {
  * Query: ?filter=due | upcoming | stale | all (default)
  */
 export async function GET(request: NextRequest) {
-  const filter = request.nextUrl.searchParams.get('filter') ?? 'all';
+  const filter = (await request.nextUrl.searchParams.get('filter')) ?? 'all';
 
   if (filter === 'stale') {
-    const s = getSettings();
-    const stale = db.prepare(`
+    const s = await getSettings();
+    const stale = (await db.prepare(`
       SELECT id, ig_username, full_name, profile_pic, status, updated_at,
         CAST(julianday('now') - julianday(updated_at) AS INTEGER) AS days_stale
       FROM leads
@@ -51,40 +51,40 @@ export async function GET(request: NextRequest) {
           OR (status = 'interested' AND julianday('now') - julianday(updated_at) >= ?)
         )
       ORDER BY days_stale DESC
-    `).all(s.contacted_days, s.replied_days, s.interested_days) as StaleLead[];
+    `).all(s.contacted_days, s.replied_days, s.interested_days)) as StaleLead[];
     return Response.json(stale);
   }
 
   let reminders: Reminder[];
   switch (filter) {
     case 'due':
-      reminders = db
-        .prepare(
-          `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
+      reminders = (await db
+              .prepare(
+                `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
            JOIN leads l ON l.id = r.lead_id
            WHERE r.sent = 0 AND r.due_at <= datetime('now')
            ORDER BY r.due_at ASC`
-        )
-        .all() as Reminder[];
+              )
+              .all()) as Reminder[];
       break;
     case 'upcoming':
-      reminders = db
-        .prepare(
-          `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
+      reminders = (await db
+              .prepare(
+                `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
            JOIN leads l ON l.id = r.lead_id
            WHERE r.sent = 0 AND r.due_at > datetime('now')
            ORDER BY r.due_at ASC`
-        )
-        .all() as Reminder[];
+              )
+              .all()) as Reminder[];
       break;
     default:
-      reminders = db
-        .prepare(
-          `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
+      reminders = (await db
+              .prepare(
+                `SELECT r.*, l.ig_username, l.profile_pic FROM reminders r
            JOIN leads l ON l.id = r.lead_id
            ORDER BY r.due_at DESC`
-        )
-        .all() as Reminder[];
+              )
+              .all()) as Reminder[];
   }
 
   return Response.json(reminders);
@@ -110,18 +110,18 @@ export async function POST(request: NextRequest) {
   }
 
   // Verify the lead exists
-  const lead = db.prepare('SELECT id FROM leads WHERE id = ?').get(lead_id);
+  const lead = (await db.prepare('SELECT id FROM leads WHERE id = ?').get(lead_id));
   if (!lead) {
     return Response.json({ error: 'Lead not found' }, { status: 404 });
   }
 
-  const result = db
-    .prepare('INSERT INTO reminders (lead_id, due_at, note) VALUES (?, ?, ?)')
-    .run(lead_id, due_at, note ?? null);
+  const result = (await db
+      .prepare('INSERT INTO reminders (lead_id, due_at, note) VALUES (?, ?, ?)')
+      .run(lead_id, due_at, note ?? null));
 
-  const reminder = db
-    .prepare('SELECT * FROM reminders WHERE id = ?')
-    .get(result.lastInsertRowid) as Reminder;
+  const reminder = (await db
+      .prepare('SELECT * FROM reminders WHERE id = ?')
+      .get(result.lastInsertRowid)) as Reminder;
 
   return Response.json(reminder, { status: 201 });
 }

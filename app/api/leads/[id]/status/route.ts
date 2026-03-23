@@ -22,14 +22,14 @@ export async function PATCH(
     );
   }
 
-  const result = db
-    .prepare(`UPDATE leads SET status = ?, updated_at = datetime('now') WHERE id = ?`)
-    .run(status, id);
+  const result = (await db
+      .prepare(`UPDATE leads SET status = ?, updated_at = datetime('now') WHERE id = ?`)
+      .run(status, id));
 
   if (result.changes === 0) {
     return Response.json({ error: 'Lead not found' }, { status: 404 });
   }
 
-  const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(id);
+  const lead = (await db.prepare('SELECT * FROM leads WHERE id = ?').get(id));
   return Response.json(lead);
 }

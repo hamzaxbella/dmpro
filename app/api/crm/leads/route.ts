@@ -34,29 +34,27 @@ export async function POST(req: NextRequest) {
     VALUES (?, 'outbound', ?, ?)
   `);
 
-  db.transaction(() => {
-    let lead = findByIgsid.get(igsid) as { id: number; ignored: number } | undefined;
+  let lead = (await findByIgsid.get(igsid)) as { id: number; ignored: number } | undefined;
 
-    if (!lead) {
-      // Check if a lead already exists with ig_username = igsid (old webhook style)
-      const existing = findByName.get(igsid) as { id: number; ignored: number } | undefined;
-      if (existing) {
-        if (existing.ignored) return; // silently skip ignored accounts
-        setIgsid.run(igsid, existing.id);
-        lead = existing;
-      } else {
-        const info = insertLead.run(igsid, igsid);
-        lead = { id: info.lastInsertRowid as number, ignored: 0 };
-      }
+  if (!lead) {
+    // Check if a lead already exists with ig_username = igsid (old webhook style)
+    const existing = (await findByName.get(igsid)) as { id: number; ignored: number } | undefined;
+    if (existing) {
+      if (existing.ignored) return NextResponse.json({ ok: true }); // silently skip ignored accounts
+      await setIgsid.run(igsid, existing.id);
+      lead = existing;
     } else {
-      if (lead.ignored) return; // silently skip ignored accounts
-      touchLead.run(lead.id);
+      const info = (await insertLead.run(igsid, igsid));
+      lead = { id: info.lastInsertRowid as number, ignored: 0 };
     }
+  } else {
+    if (lead.ignored) return NextResponse.json({ ok: true }); // silently skip ignored accounts
+    await touchLead.run(lead.id);
+  }
 
-    if (messageText || messageMid) {
-      insertEvent.run(lead.id, messageText ?? null, messageMid ?? null);
-    }
-  })();
+  if (messageText || messageMid) {
+    await insertEvent.run(lead.id, messageText ?? null, messageMid ?? null);
+  }
 
   return NextResponse.json({ ok: true });
 }

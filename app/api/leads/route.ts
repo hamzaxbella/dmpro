@@ -27,18 +27,18 @@ const BASE_QUERY = `
  * ?ignored=1 returns ignored leads; default returns non-ignored
  */
 export async function GET(request: NextRequest) {
-  const status  = request.nextUrl.searchParams.get('status');
-  const ignored = request.nextUrl.searchParams.get('ignored') === '1' ? 1 : 0;
+  const status  = (await request.nextUrl.searchParams.get('status'));
+  const ignored = (await request.nextUrl.searchParams.get('ignored')) === '1' ? 1 : 0;
 
   let leads: Lead[];
   if (status) {
-    leads = db
-      .prepare(BASE_QUERY + 'WHERE l.status = ? AND l.ignored = ? ORDER BY l.updated_at DESC')
-      .all(status, ignored) as Lead[];
+    leads = (await db
+          .prepare(BASE_QUERY + 'WHERE l.status = ? AND l.ignored = ? ORDER BY l.updated_at DESC')
+          .all(status, ignored)) as Lead[];
   } else {
-    leads = db
-      .prepare(BASE_QUERY + 'WHERE l.ignored = ? ORDER BY l.updated_at DESC')
-      .all(ignored) as Lead[];
+    leads = (await db
+          .prepare(BASE_QUERY + 'WHERE l.ignored = ? ORDER BY l.updated_at DESC')
+          .all(ignored)) as Lead[];
   }
 
   return Response.json(leads);
@@ -61,15 +61,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = db
-      .prepare(
-        `INSERT INTO leads (ig_username, full_name, notes) VALUES (?, ?, ?)`
-      )
-      .run(ig_username, full_name ?? null, notes ?? null);
+    const result = (await db
+          .prepare(
+            `INSERT INTO leads (ig_username, full_name, notes) VALUES (?, ?, ?)`
+          )
+          .run(ig_username, full_name ?? null, notes ?? null));
 
-    const lead = db
-      .prepare('SELECT * FROM leads WHERE id = ?')
-      .get(result.lastInsertRowid) as Lead;
+    const lead = (await db
+          .prepare('SELECT * FROM leads WHERE id = ?')
+          .get(result.lastInsertRowid)) as Lead;
 
     return Response.json(lead, { status: 201 });
   } catch (err: unknown) {

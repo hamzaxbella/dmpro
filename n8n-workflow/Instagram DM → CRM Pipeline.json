@@ -1,0 +1,463 @@
+{
+  "name": "Instagram DM → CRM Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "76d80ce4-20e8-411a-bfa4-8e0cc904e564",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        624
+      ],
+      "id": "46f2ae8e-c7bd-4917-b914-7003ba0d0feb",
+      "name": "Instagram Webhook",
+      "webhookId": "76d80ce4-20e8-411a-bfa4-8e0cc904e564"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-verify-mode",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-verify-token",
+              "leftValue": "={{ $json.query['hub.verify_token'] || $json.query.hub_verify_token }}",
+              "rightValue": "PInI8UwIc4wi",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        464
+      ],
+      "id": "beb1ab9f-0580-47af-b452-5fc084676555",
+      "name": "Verify Token"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        496,
+        448
+      ],
+      "id": "fdac87c5-0822-43ba-a0cd-cdbafb97ed9c",
+      "name": "Respond Challenge"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "EVENT_RECEIVED",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        768
+      ],
+      "id": "5bb3ad92-09fc-4b94-84d6-67c159ae9b71",
+      "name": "Respond 200 OK"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ============================================\n// PARSE INSTAGRAM WEBHOOK\n// Normalizes both outbound echoes and inbound messages\n// ============================================\n\nconst body = $input.item.json.body;\nconst entry = body?.entry?.[0];\nconst messaging = entry?.messaging?.[0];\n\n// Skip non-message events (reactions, read receipts, postbacks, etc.)\nif (!messaging?.message) {\n  return { json: { eventType: 'skip' } };\n}\n\nconst isEcho = messaging.message.is_echo === true;\nconst myAccountId = entry.id;\n\n// When YOU send: sender = you, recipient = lead\n// When LEAD replies: sender = lead, recipient = you\nconst leadIgsid = isEcho ? messaging.recipient.id : messaging.sender.id;\n\nreturn {\n  json: {\n    eventType: isEcho ? 'outbound' : 'inbound',\n    myAccountId: myAccountId,\n    leadIgsid: leadIgsid,\n    messageText: messaging.message.text || '',\n    messageMid: messaging.message.mid || '',\n    timestamp: messaging.timestamp,\n    senderId: messaging.sender.id,\n    recipientId: messaging.recipient.id\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        768
+      ],
+      "id": "3294688a-07b8-4215-b442-e76111b83c6f",
+      "name": "Parse Webhook Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-is-outbound",
+              "leftValue": "={{ $json.eventType }}",
+              "rightValue": "outbound",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        768
+      ],
+      "id": "c649e824-8db5-4502-8c03-602a98e63507",
+      "name": "Is Outbound Echo?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://594c-160-177-187-63.ngrok-free.app/api/crm/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "bffe50a3831f519bdefcaf01cbbfa1ee"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  igsid: $json.leadIgsid,\n  status: 'contacted',\n  messageText: $json.messageText,\n  messageMid: $json.messageMid,\n  timestamp: $json.timestamp,\n  direction: 'outbound'\n}) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1024,
+        496
+      ],
+      "id": "e0b95d3d-fe9c-474e-9783-b585f974b713",
+      "name": "Create Lead in CRM"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-is-inbound",
+              "leftValue": "={{ $json.eventType }}",
+              "rightValue": "inbound",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        944,
+        880
+      ],
+      "id": "b198d5c6-2057-4279-95be-be8c7fae422a",
+      "name": "Is Inbound Reply?"
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.instagram.com/v25.0/{{ $json.leadIgsid }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "name,username,profile_pic,follower_count,is_user_follow_business,is_business_follow_user"
+            },
+            {
+              "name": "access_token",
+              "value": "IGAARnMMj9RZAVBZAGE4dFcwYTkzdDRVQjZAoaWt1LWE0anlJMkJzT0RER0RrSUxMd0pRSUI2OHEwUTBNaWVNQzdpdlZAhWTBJODNyeEhWV3AyeG04a0hUVEw0OGpLcEVOaGd3RlVlWmNLaXJNMXFXQkRuQWQwOWVpQmhqNTNtOG9YNAZDZD"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        864
+      ],
+      "id": "0ce6bc03-7b4c-4513-8906-d3c47695292f",
+      "name": "Get Instagram Profile",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ============================================\n// MERGE PROFILE DATA WITH ORIGINAL WEBHOOK DATA\n// Combines IG profile info with the parsed message\n// ============================================\n\nconst profile = $input.item.json;\n\n// Pull the original parsed data from earlier node\nconst parsed = $('Parse Webhook Data').first().json;\n\nreturn {\n  json: {\n    // Original message data\n    eventType: parsed.eventType,\n    myAccountId: parsed.myAccountId,\n    leadIgsid: parsed.leadIgsid,\n    messageText: parsed.messageText,\n    messageMid: parsed.messageMid,\n    timestamp: parsed.timestamp,\n    \n    // Profile data (may be null if user hasn't consented yet)\n    username: profile.username || null,\n    name: profile.name || null,\n    profilePic: profile.profile_pic || null,\n    followerCount: profile.follower_count || 0,\n    isUserFollowBusiness: profile.is_user_follow_business || false,\n    isBusinessFollowUser: profile.is_business_follow_user || false,\n    \n    // Build the Instagram URL if username is available\n    instagramUrl: profile.username ? `https://instagram.com/${profile.username}` : null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        864
+      ],
+      "id": "9cca5d23-eb58-492f-ac9f-9e4b84815b1e",
+      "name": "Merge Profile + Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://594c-160-177-187-63.ngrok-free.app/api/crm/leads/reply",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "bffe50a3831f519bdefcaf01cbbfa1ee"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  igsid: $json.leadIgsid,\n  status: 'replied',\n  messageText: $json.messageText,\n  messageMid: $json.messageMid,\n  timestamp: $json.timestamp,\n  direction: 'inbound',\n  profile: {\n    username: $json.username,\n    name: $json.name,\n    profilePic: $json.profilePic,\n    followerCount: $json.followerCount,\n    instagramUrl: $json.instagramUrl,\n    isUserFollowBusiness: $json.isUserFollowBusiness,\n    isBusinessFollowUser: $json.isBusinessFollowUser\n  }\n}) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1616,
+        864
+      ],
+      "id": "df287f45-429f-4dec-bcca-4a0f049ed7d8",
+      "name": "Update Lead + Save Reply"
+    },
+    {
+      "parameters": {
+        "content": "## 🔧 SETUP — Replace these 3 values:\n\n**1. YOUR-APP.com** → Your Next.js app domain\n   (in \"Create Lead in CRM\" and \"Update Lead + Save Reply\" nodes)\n\n**2. YOUR_CRM_API_SECRET** → A secret key to protect your API routes\n   (in both HTTP Request nodes, under x-api-key header)\n\n**3. YOUR_INSTAGRAM_ACCESS_TOKEN** → Your IG access token\n   (in \"Get Instagram Profile\" node, under access_token query param)\n   Generate this in Meta App Dashboard → Instagram → Generate access tokens\n\n---\n\n## 📡 How it works:\n\n**Outbound (you send DM from any device):**\nWebhook → Parse (detects is_echo:true) → Creates lead card in CRM\n\n**Inbound (lead replies):**\nWebhook → Parse (detects reply) → Fetches IG profile → Updates lead with username + profile pic → Moves card to \"Replied\"\n\n---\n\n## 🗄️ Next.js API routes you need to build:\n\n`POST /api/crm/leads` → Create new lead (receives: igsid, status, messageText, direction)\n`POST /api/crm/leads/reply` → Update lead on reply (receives: igsid, status, messageText, direction, profile)",
+        "height": 1284,
+        "width": 576,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        -16
+      ],
+      "id": "216d00ab-debc-46ba-9fbe-5790d059f1c1",
+      "name": "Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "## ⚡ Outbound Path\nWhen YOU send a DM from phone/desktop/web\n→ Meta sends is_echo:true\n→ New lead card created in Kanban",
+        "height": 308,
+        "width": 352,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        912,
+        368
+      ],
+      "id": "126b5289-2932-4511-a431-04d619a03789",
+      "name": "Outbound Note"
+    },
+    {
+      "parameters": {
+        "content": "## 💬 Inbound Path\nWhen lead replies to your DM\n→ Fetches their IG username, profile pic, follower count\n→ Updates lead card + saves conversation",
+        "height": 324,
+        "width": 960,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        912,
+        736
+      ],
+      "id": "98b9ed25-64d0-494e-bfb1-d8815d2f3065",
+      "name": "Inbound Note"
+    },
+    {
+      "parameters": {
+        "content": "# working out making things out ",
+        "height": 240,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        176,
+        368
+      ],
+      "typeVersion": 1,
+      "id": "0fda6659-6164-4732-8350-132eb86c5760",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Instagram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Token": {
+      "main": [
+        [
+          {
+            "node": "Respond Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 OK": {
+      "main": [
+        [
+          {
+            "node": "Parse Webhook Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Webhook Data": {
+      "main": [
+        [
+          {
+            "node": "Is Outbound Echo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Outbound Echo?": {
+      "main": [
+        [
+          {
+            "node": "Create Lead in CRM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Inbound Reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Inbound Reply?": {
+      "main": [
+        [
+          {
+            "node": "Get Instagram Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Instagram Profile": {
+      "main": [
+        [
+          {
+            "node": "Merge Profile + Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Profile + Message": {
+      "main": [
+        [
+          {
+            "node": "Update Lead + Save Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d196bfeb-51eb-4fd1-a50a-796392748b51",
+  "meta": {
+    "instanceId": "c5eef63e2bdb2d31b91dfd564b857a06f22e4a63b39056a4c16b2ec2a5781cc2"
+  },
+  "id": "w9SjiaeZZoFGlP5l",
+  "tags": []
+}

@@ -12,9 +12,9 @@ const PAGE_ID = process.env.META_PAGE_ID;
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
-  const mode      = searchParams.get('hub.mode');
-  const token     = searchParams.get('hub.verify_token');
-  const challenge = searchParams.get('hub.challenge');
+  const mode      = (await searchParams.get('hub.mode'));
+  const token     = (await searchParams.get('hub.verify_token'));
+  const challenge = (await searchParams.get('hub.challenge'));
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
     console.log('[webhook] Verification successful');
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const signature = request.headers.get('x-hub-signature-256') ?? '';
+  const signature = (await request.headers.get('x-hub-signature-256')) ?? '';
 
   if (!verifySignature(rawBody, signature)) {
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
@@ -63,26 +63,22 @@ export async function POST(request: NextRequest) {
 
   const getLeadId = db.prepare(`SELECT id FROM leads WHERE ig_username = ?`);
 
-  const processAll = db.transaction(() => {
-    for (const event of events) {
-      const isOutbound = PAGE_ID ? event.senderId === PAGE_ID : false;
-      const direction = isOutbound ? 'outbound' : 'inbound';
-      const igUsername = isOutbound ? event.recipientId : event.senderId;
+  for (const event of events) {
+    const isOutbound = PAGE_ID ? event.senderId === PAGE_ID : false;
+    const direction = isOutbound ? 'outbound' : 'inbound';
+    const igUsername = isOutbound ? event.recipientId : event.senderId;
 
-      if (isOutbound) {
-        upsertLeadOutbound.run(igUsername);
-      } else {
-        upsertLeadInbound.run(igUsername);
-      }
-
-      const lead = getLeadId.get(igUsername) as { id: number } | undefined;
-      if (lead) {
-        insertEvent.run(lead.id, direction, event.text ?? null, event.messageId);
-      }
+    if (isOutbound) {
+      await upsertLeadOutbound.run(igUsername);
+    } else {
+      await upsertLeadInbound.run(igUsername);
     }
-  });
 
-  processAll();
+    const lead = (await getLeadId.get(igUsername)) as { id: number } | undefined;
+    if (lead) {
+      await insertEvent.run(lead.id, direction, event.text ?? null, event.messageId);
+    }
+  }
 
   return Response.json({ received: events.length }, { status: 200 });
 }

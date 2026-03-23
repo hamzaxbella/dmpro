@@ -42,19 +42,19 @@ async function sendNotification(reminder: Reminder): Promise<boolean> {
 // Query due reminders and send notifications every 60 seconds
 cron.schedule('* * * * *', async () => {
   try {
-    const dueReminders = db
-      .prepare(
-        `SELECT r.id, r.lead_id, r.note, r.due_at, l.ig_username
+    const dueReminders = (await db
+          .prepare(
+            `SELECT r.id, r.lead_id, r.note, r.due_at, l.ig_username
          FROM reminders r
          JOIN leads l ON l.id = r.lead_id
          WHERE r.due_at <= datetime('now') AND r.sent = 0`
-      )
-      .all() as Reminder[];
+          )
+          .all()) as Reminder[];
 
     for (const reminder of dueReminders) {
       const sent = await sendNotification(reminder);
       if (sent) {
-        db.prepare('UPDATE reminders SET sent = 1 WHERE id = ?').run(reminder.id);
+        (await db.prepare('UPDATE reminders SET sent = 1 WHERE id = ?').run(reminder.id));
         console.log(`[cron] Reminder #${reminder.id} sent for @${reminder.ig_username}`);
       }
     }

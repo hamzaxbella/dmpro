@@ -13,9 +13,9 @@ const KEYS: (keyof ReminderSettings)[] = ['contacted_days', 'replied_days', 'int
  * GET /api/settings — Returns current reminder threshold settings
  */
 export async function GET() {
-  const rows = db
-    .prepare(`SELECT key, value FROM settings WHERE key IN ('contacted_days','replied_days','interested_days')`)
-    .all() as { key: string; value: string }[];
+  const rows = (await db
+      .prepare(`SELECT key, value FROM settings WHERE key IN ('contacted_days','replied_days','interested_days')`)
+      .all()) as { key: string; value: string }[];
 
   const settings: ReminderSettings = {
     contacted_days: 3,
@@ -42,18 +42,14 @@ export async function PATCH(req: NextRequest) {
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`
   );
 
-  const update = db.transaction(() => {
-    for (const key of KEYS) {
-      if (body[key] !== undefined) {
-        const val = parseInt(String(body[key]), 10);
-        if (!isNaN(val) && val > 0) {
-          upsert.run(key, String(val));
-        }
+  for (const key of KEYS) {
+    if (body[key] !== undefined) {
+      const val = parseInt(String(body[key]), 10);
+      if (!isNaN(val) && val > 0) {
+        await upsert.run(key, String(val));
       }
     }
-  });
-
-  update();
+  }
 
   return GET();
 }

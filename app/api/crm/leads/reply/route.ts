@@ -61,34 +61,32 @@ export async function POST(req: NextRequest) {
     VALUES (?, 'inbound', ?, ?)
   `);
 
-  db.transaction(() => {
-    let lead = findByIgsid.get(igsid) as { id: number; status: string; ignored: number } | undefined;
+  let lead = (await findByIgsid.get(igsid)) as { id: number; status: string; ignored: number } | undefined;
 
-    if (!lead) {
-      // Fall back to ig_username match (handles igsid-as-username from outbound step)
-      lead = findByName.get(igsid) as { id: number; status: string; ignored: number } | undefined
-          ?? findByName.get(igUsername) as { id: number; status: string; ignored: number } | undefined;
-    }
+  if (!lead) {
+    // Fall back to ig_username match (handles igsid-as-username from outbound step)
+    lead = (await findByName.get(igsid)) as { id: number; status: string; ignored: number } | undefined
+        ?? (await findByName.get(igUsername)) as { id: number; status: string; ignored: number } | undefined;
+  }
 
-    if (lead?.ignored) return; // silently skip ignored accounts
+  if (lead?.ignored) return NextResponse.json({ ok: true }); // silently skip ignored accounts
 
-    if (lead) {
-      updateLead.run(
-        igUsername, igUsername,           // update ig_username if it differs from igsid
-        igsid,                            // set igsid if null
-        profile.name ?? null,
-        profile.profilePic ?? null,
-        lead.id
-      );
-    } else {
-      const info = insertLead.run(igUsername, igsid, profile.name ?? null, profile.profilePic ?? null);
-      lead = { id: info.lastInsertRowid as number, status: 'replied', ignored: 0 };
-    }
+  if (lead) {
+    await updateLead.run(
+              igUsername, igUsername,           // update ig_username if it differs from igsid
+              igsid,                            // set igsid if null
+              profile.name ?? null,
+              profile.profilePic ?? null,
+              lead.id
+            );
+  } else {
+    const info = (await insertLead.run(igUsername, igsid, profile.name ?? null, profile.profilePic ?? null));
+    lead = { id: info.lastInsertRowid as number, status: 'replied', ignored: 0 };
+  }
 
-    if (messageText || messageMid) {
-      insertEvent.run(lead!.id, messageText ?? null, messageMid ?? null);
-    }
-  })();
+  if (messageText || messageMid) {
+    await insertEvent.run(lead!.id, messageText ?? null, messageMid ?? null);
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -16,7 +16,7 @@ export interface InboxItem {
 }
 
 export async function GET() {
-  const rows = db.prepare(`
+  const rows = (await db.prepare(`
     SELECT
       l.id,
       l.ig_username,
@@ -33,7 +33,7 @@ export async function GET() {
       (SELECT created_at FROM events WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1),
       l.updated_at
     ) DESC
-  `).all() as InboxItem[];
+  `).all()) as InboxItem[];
 
   return NextResponse.json(rows);
 }

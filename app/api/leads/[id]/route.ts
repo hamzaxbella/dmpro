@@ -29,14 +29,14 @@ export async function GET(
 ) {
   const { id } = await ctx.params;
 
-  const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(id) as Lead | undefined;
+  const lead = (await db.prepare('SELECT * FROM leads WHERE id = ?').get(id)) as Lead | undefined;
   if (!lead) {
     return Response.json({ error: 'Lead not found' }, { status: 404 });
   }
 
-  const events = db
-    .prepare('SELECT * FROM events WHERE lead_id = ? ORDER BY created_at DESC')
-    .all(id) as Event[];
+  const events = (await db
+      .prepare('SELECT * FROM events WHERE lead_id = ? ORDER BY created_at DESC')
+      .all(id)) as Event[];
 
   return Response.json({ ...lead, events });
 }
@@ -82,15 +82,15 @@ export async function PATCH(
   values.push(id);
 
   try {
-    const result = db
-      .prepare(`UPDATE leads SET ${sets.join(', ')} WHERE id = ?`)
-      .run(...values);
+    const result = (await db
+          .prepare(`UPDATE leads SET ${sets.join(', ')} WHERE id = ?`)
+          .run(...values));
 
     if (result.changes === 0) {
       return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(id) as Lead;
+    const lead = (await db.prepare('SELECT * FROM leads WHERE id = ?').get(id)) as Lead;
     return Response.json(lead);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -113,7 +113,7 @@ export async function DELETE(
 ) {
   const { id } = await ctx.params;
 
-  const result = db.prepare('DELETE FROM leads WHERE id = ?').run(id);
+  const result = (await db.prepare('DELETE FROM leads WHERE id = ?').run(id));
 
   if (result.changes === 0) {
     return Response.json({ error: 'Lead not found' }, { status: 404 });
