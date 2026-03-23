@@ -80,20 +80,21 @@ export default function AnalyticsPage() {
 
         {/* Range selector */}
         <div
-          className="flex rounded-lg overflow-hidden"
-          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}
+          className="flex p-0.5 rounded-lg"
+          style={{ background: "rgba(0,0,0,0.04)" }}
         >
           {["7d", "30d", "90d", "all"].map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className="px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
+              className="px-3.5 py-1 text-xs font-semibold transition-all duration-150 rounded-md"
               style={{
-                background: range === r ? "var(--accent)" : "transparent",
-                color: range === r ? "#fff" : "var(--muted)",
+                background: range === r ? "#ffffff" : "transparent",
+                color: range === r ? "var(--foreground)" : "var(--muted)",
+                boxShadow: range === r ? "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)" : "none",
               }}
             >
-              {r === "all" ? "All" : r}
+              {r === "all" ? "All time" : r}
             </button>
           ))}
         </div>

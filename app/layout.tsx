@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "DMPro — Instagram DM Pipeline",
   description:
     "Manage your Instagram DM outreach pipeline with a visual kanban board, analytics, and smart reminders.",
+  icons: {
+    icon: "/icons/favicon-dark.svg",
+  },
 };
 
 
@@ -34,25 +37,18 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col" style={{ background: "var(--background)" }}>
         {/* Top navigation */}
         <header
-          className="sticky top-0 z-50"
+          className="sticky top-0 z-50 flex-shrink-0"
           style={{
-            background: "rgba(255,255,255,0.85)",
-            backdropFilter: "blur(12px)",
-            borderBottom: "1px solid var(--border)",
+            background: "rgba(255,255,255,0.7)",
+            backdropFilter: "saturate(180%) blur(16px)",
+            WebkitBackdropFilter: "saturate(180%) blur(16px)",
+            borderBottom: "1px solid rgba(0,0,0,0.06)",
           }}
         >
-          <div className="max-w-[1280px] mx-auto flex items-center justify-between px-6 h-14">
+          <div className="max-w-[1280px] mx-auto flex items-center justify-between px-6 h-16">
             {/* Logo */}
-            <Link href="/board" className="flex items-center gap-2.5">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                style={{ background: "var(--accent)" }}
-              >
-                D
-              </div>
-              <span className="font-semibold text-[0.9375rem] tracking-[-0.01em]" style={{ color: "var(--foreground)" }}>
-                DMPro
-              </span>
+            <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
+              <img src="/icons/dark-full.svg" alt="DMPro Logo" className="h-[24px] w-auto mt-0.5" />
             </Link>
 
             {/* Nav links */}

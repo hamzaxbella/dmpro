@@ -58,12 +58,12 @@ function KanbanColumn({ status, leads }: { status: string; leads: Lead[] }) {
   const config = STATUS_CONFIG[status];
 
   return (
-    <div className="flex flex-col min-w-[210px] flex-1" style={{ minHeight: 0 }}>
+      <div className="flex flex-col min-w-[210px] flex-1" style={{ minHeight: 0 }}>
       {/* Column header — sticky within column */}
       <div className="flex items-center justify-between mb-3 px-1 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-          <h3 className="text-[0.8125rem] font-semibold" style={{ color: "var(--foreground)" }}>
+          <h3 className="text-[0.75rem] font-bold uppercase tracking-[0.04em]" style={{ color: "var(--foreground-secondary)" }}>
             {config?.label ?? status}
           </h3>
         </div>
@@ -78,14 +78,15 @@ function KanbanColumn({ status, leads }: { status: string; leads: Lead[] }) {
       {/* Droppable zone — scrolls independently */}
       <div
         ref={setNodeRef}
-        className={`kanban-column flex flex-col gap-2 p-2 rounded-xl ${isOver ? "drag-over" : ""}`}
+        className={`kanban-column flex flex-col gap-3 rounded-lg ${isOver ? "drag-over" : ""}`}
         style={{
-          backgroundColor: isOver ? "var(--accent-light)" : "rgba(0,0,0,0.015)",
+          backgroundColor: isOver ? "var(--accent-light)" : "transparent",
           border: `1.5px dashed ${isOver ? "var(--accent)" : "transparent"}`,
           transition: "all 0.2s ease",
           minHeight: 200,
           maxHeight: "calc(100vh - 220px)",
           overflowY: "auto",
+          paddingBottom: "24px",
         }}
       >
         <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
@@ -288,7 +289,8 @@ export default function KanbanBoard({ initialLeads }: KanbanBoardProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search leads…"
-            className="input pl-8 pr-3 py-[7px] w-44 text-[0.8125rem]"
+            className="input w-44 text-[0.8125rem]"
+            style={{ paddingLeft: "34px", paddingTop: "7px", paddingBottom: "7px" }}
           />
         </div>
 

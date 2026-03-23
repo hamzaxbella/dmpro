@@ -2,22 +2,22 @@
 
 :root {
   /* Core palette — light, airy, professional */
-  --background: #fafafa;
+  --background: #f6f9fc; /* Stripe canvas */
   --surface: #ffffff;
-  --foreground: #1a1a2e;
-  --foreground-secondary: #64648c;
-  --border: #e8e8ef;
-  --border-hover: #d0d0dd;
-  --muted: #9494a8;
+  --foreground: #0a2540; /* Stripe dark text */
+  --foreground-secondary: #425466; /* Stripe muted text */
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --muted: #64748b;
 
-  /* Coral accent system */
-  --accent: #f47458;
-  --accent-hover: #e8624c;
-  --accent-light: #fef0ed;
-  --accent-glow: rgba(244, 116, 88, 0.08);
-  --accent-ring: rgba(244, 116, 88, 0.25);
+  /* Stripe-like Brand Red accent system */
+  --accent: #F43E41;
+  --accent-hover: #DD1D20;
+  --accent-light: #fef0ef;
+  --accent-glow: rgba(244, 62, 65, 0.08);
+  --accent-ring: rgba(244, 62, 65, 0.25);
 
-  /* Status palette — muted pastels for a clean look */
+  /* Status palette — crisp & professional */
   --status-contacted: #f59e0b;
   --status-contacted-bg: #fef9ec;
   --status-replied: #3b82f6;
@@ -31,9 +31,9 @@
 
   /* Shadow system */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 @theme inline {
@@ -66,21 +66,23 @@ body {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  border-radius: 8px; /* Stripe style sharper corners */
+  box-shadow: var(--shadow-sm); /* Default very subtle */
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
+  transform: translateY(-2px); /* Slight lift */
 }
 
 .card-elevated {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow-md);
+  border-radius: 8px; /* Stripe sharper borders */
+  box-shadow: var(--shadow-md); /* crisp elevation */
+  overflow: hidden;
 }
 
 /* ==================== Kanban ==================== */
@@ -132,12 +134,12 @@ body {
 /* ==================== Navigation ==================== */
 .nav-link {
   position: relative;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 0.8125rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: var(--muted);
-  transition: all 0.15s ease;
+  color: var(--foreground-secondary);
+  transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
   text-decoration: none;
 }
 
@@ -147,18 +149,32 @@ body {
 }
 
 .nav-link.active {
-  color: var(--accent);
-  background: var(--accent-light);
+  color: var(--foreground);
+  background: transparent;
+  font-weight: 600;
+}
+
+/* Subtle dot indicator for active nav */
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--accent);
 }
 
 /* ==================== Metric Cards ==================== */
 .metric-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 8px; /* Stripe sharper radius */
   padding: 20px 24px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  box-shadow: var(--shadow-xs);
+  transition: transform 0.2s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.2s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.2s ease;
+  box-shadow: var(--shadow-sm); /* Just a soft baseline */
 }
 
 .metric-card:hover {
@@ -171,12 +187,13 @@ body {
 .input {
   width: 100%;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.875rem;
-  background: var(--surface);
+  background: #ffffff;
   border: 1px solid var(--border);
   color: var(--foreground);
   outline: none;
+  box-shadow: var(--shadow-sm); /* subtle base shadow */
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -186,41 +203,45 @@ body {
 
 .input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  box-shadow: 0 0 0 3px var(--accent-ring), var(--shadow-sm); /* layered shadow & focus ring */
 }
 
 /* ==================== Buttons ==================== */
 .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 0.8125rem;
   font-weight: 600;
   color: #ffffff;
   background: var(--accent);
-  border: none;
+  border: 1px solid rgba(0,0,0,0.1); /* Slight edge to make it pop */
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 2px 4px rgba(244, 62, 65, 0.3), inset 0 1px 0 rgba(255,255,255,0.15); /* Stripe 3D feel */
 }
 
 .btn-primary:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(244, 116, 88, 0.25);
+  box-shadow: 0 4px 8px rgba(221, 29, 32, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 .btn-primary:active {
   transform: translateY(0);
+  box-shadow: none;
 }
 
 .btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 6px; /* Crisper corners */
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--foreground-secondary);
