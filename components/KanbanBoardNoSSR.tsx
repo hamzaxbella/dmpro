@@ -3,8 +3,8 @@
 /**
  * Thin client wrapper that loads KanbanBoard only on the client.
  * Required because @dnd-kit generates aria IDs that differ between
- * server and client renders, causing hydration mismatches.
- */
+ * server and client renders, causing hydration mismatches. and yes
+ */ 
 import dynamic from "next/dynamic";
 import type { Lead } from "./LeadCard";
 
