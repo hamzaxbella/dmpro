@@ -1,0 +1,2 @@
+app/api/crm/leads/route.ts: * Called by n8n when an OUTBOUND echo is detected (you sent a DM).
+app/api/crm/leads/reply/route.ts: * Called by n8n when an INBOUND message is detected (lead replied).
