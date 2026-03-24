@@ -6,11 +6,23 @@ const DB_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
 // Singleton: reuse the same connection across hot reloads in dev
 const globalForDb = globalThis as unknown as { __client?: any };
 
+/** Run idempotent column migrations — errors on "duplicate column" are expected and swallowed. */
+async function runMigrations(client: Client) {
+  const addColumn = async (sql: string) => {
+    try { await client.execute(sql); } catch { /* column already exists */ }
+  };
+  await addColumn('ALTER TABLE leads ADD COLUMN ignored INTEGER NOT NULL DEFAULT 0');
+}
+
 function createDbClient() {
   const client = createClient({
     url: DB_URL,
     authToken: DB_AUTH_TOKEN,
   });
+
+  // Fire-and-forget: run migrations on first init.
+  // Errors only if the column already exists, which is fine.
+  runMigrations(client).catch(() => {});
 
   // Compat wrapper
   return {

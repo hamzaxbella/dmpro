@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS leads (
   status       TEXT    NOT NULL DEFAULT 'contacted'
                  CHECK(status IN ('contacted','replied','interested','closed','lost')),
   notes        TEXT,
+  ignored      INTEGER NOT NULL DEFAULT 0,
   created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );

@@ -36,7 +36,15 @@ interface KanbanBoardProps {
   initialLeads: Lead[];
 }
 
-function SortableLeadCard({ lead }: { lead: Lead }) {
+function SortableLeadCard({
+  lead,
+  onIgnore,
+  onDelete,
+}: {
+  lead: Lead;
+  onIgnore: (id: number) => void;
+  onDelete: (id: number) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: lead.id, data: { lead } });
 
@@ -47,12 +55,22 @@ function SortableLeadCard({ lead }: { lead: Lead }) {
       {...attributes}
       {...listeners}
     >
-      <LeadCard lead={lead} isDragging={isDragging} />
+      <LeadCard lead={lead} isDragging={isDragging} onIgnore={onIgnore} onDelete={onDelete} />
     </div>
   );
 }
 
-function KanbanColumn({ status, leads }: { status: string; leads: Lead[] }) {
+function KanbanColumn({
+  status,
+  leads,
+  onIgnore,
+  onDelete,
+}: {
+  status: string;
+  leads: Lead[];
+  onIgnore: (id: number) => void;
+  onDelete: (id: number) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const color = COLUMN_COLORS[status] ?? "#f47458";
   const config = STATUS_CONFIG[status];
@@ -91,7 +109,7 @@ function KanbanColumn({ status, leads }: { status: string; leads: Lead[] }) {
       >
         <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map((lead) => (
-            <SortableLeadCard key={lead.id} lead={lead} />
+            <SortableLeadCard key={lead.id} lead={lead} onIgnore={onIgnore} onDelete={onDelete} />
           ))}
         </SortableContext>
 
@@ -240,6 +258,18 @@ export default function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     }
   };
 
+  const handleIgnore = useCallback(async (id: number) => {
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    setIgnoredCount((c) => c + 1);
+    await fetch(`/api/leads/${id}/ignore`, { method: "POST" });
+  }, []);
+
+  const handleDeleteLead = useCallback(async (id: number) => {
+    if (!confirm("Permanently delete this lead and all its data?")) return;
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    await fetch(`/api/leads/${id}`, { method: "DELETE" });
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
@@ -367,6 +397,8 @@ export default function KanbanBoard({ initialLeads }: KanbanBoardProps) {
               key={status}
               status={status}
               leads={filteredLeads.filter((l) => l.status === status)}
+              onIgnore={handleIgnore}
+              onDelete={handleDeleteLead}
             />
           ))}
         </div>

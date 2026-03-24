@@ -20,9 +20,11 @@ export interface Lead {
 interface LeadCardProps {
   lead: Lead;
   isDragging?: boolean;
+  onIgnore?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
-export default function LeadCard({ lead, isDragging }: LeadCardProps) {
+export default function LeadCard({ lead, isDragging, onIgnore, onDelete }: LeadCardProps) {
   const router = useRouter();
   const timeAgo = getTimeAgo(lead.updated_at);
   const igUrl = `https://instagram.com/${lead.ig_username}`;
@@ -136,6 +138,43 @@ export default function LeadCard({ lead, isDragging }: LeadCardProps) {
           {timeAgo}
         </span>
       </div>
+
+      {/* Ignore / Delete actions */}
+      {(onIgnore || onDelete) && (
+        <div
+          className="flex items-center gap-1.5 mt-2.5 pt-2.5"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          {onIgnore && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onIgnore(lead.id); }}
+              className="btn-ghost text-[0.6875rem] flex items-center gap-1 px-2 py-1 rounded-md"
+              style={{ color: "var(--muted)" }}
+              title="Ignore this lead"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+              Ignore
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(lead.id); }}
+              className="btn-ghost text-[0.6875rem] flex items-center gap-1 px-2 py-1 rounded-md"
+              style={{ color: "var(--status-lost)" }}
+              title="Permanently delete this lead"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+              Delete
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
